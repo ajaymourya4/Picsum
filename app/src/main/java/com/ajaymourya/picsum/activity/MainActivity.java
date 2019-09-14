@@ -1,8 +1,10 @@
-package com.ajaymourya.picsum;
+package com.ajaymourya.picsum.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+
+import com.ajaymourya.picsum.R;
 
 public class MainActivity extends AppCompatActivity {
 
