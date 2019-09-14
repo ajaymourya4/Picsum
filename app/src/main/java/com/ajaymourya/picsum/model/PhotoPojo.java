@@ -56,7 +56,7 @@ public class PhotoPojo {
     }
 
     public String getPostUrl() {
-        return postUrl;
+        return postUrl + "/download";
     }
 
     public void setPostUrl(String postUrl) {
