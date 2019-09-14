@@ -9,6 +9,6 @@ import retrofit2.http.GET;
 
 public interface GetDataService {
 
-    @GET("/photos")
+    @GET("/list")
     Call<List<PhotoPojo>> getAllPhotos();
 }
