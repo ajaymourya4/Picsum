@@ -1,6 +1,10 @@
 package com.ajaymourya.picsum.adapter;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -13,9 +17,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.app.TaskStackBuilder;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.ajaymourya.picsum.R;
+import com.ajaymourya.picsum.activity.MainActivity;
 import com.ajaymourya.picsum.model.PhotoPojo;
 import com.jakewharton.picasso.OkHttp3Downloader;
 import com.squareup.picasso.Callback;
@@ -26,12 +34,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
+import java.util.Date;
 import java.util.List;
 
 public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomViewHolder> {
 
     private List<PhotoPojo> dataList;
-    private Context context;
+    public Context context;
 
     public CustomAdapter(Context context, List<PhotoPojo> dataList) {
         this.context = context;
@@ -115,7 +125,7 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
             downloadIcon.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    new DownloadImage(dataList.get(getAdapterPosition()).getFilename()).execute(dataList.get(getAdapterPosition()).getPostUrl());
+                    new DownloadImage(dataList.get(getAdapterPosition()).getFilename(), context).execute(dataList.get(getAdapterPosition()).getPostUrl());
                 }
             });
         }
@@ -124,12 +134,49 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
     private static class DownloadImage extends AsyncTask<String, Void, Bitmap> {
         private String TAG = "DownloadImage";
         private String imageName;
+        private Context context;
+
+        private NotificationCompat.Builder notificationBuilder;
+        private NotificationManager notificationManager;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
+
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                NotificationChannel mChannel = new NotificationChannel(
+                        "id","Channel Name" , NotificationManager.IMPORTANCE_HIGH);
+                notificationManager.createNotificationChannel(mChannel);
+            }
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "id");
+            builder.setContentTitle("Picture Download")
+                    .setContentText("Download in progress")
+                    .setSmallIcon(R.drawable.ic_launcher_background)
+                    .setPriority(NotificationCompat.PRIORITY_LOW);
+
+            // Issue the initial notification with zero progress
+            int PROGRESS_MAX = 100;
+            int PROGRESS_CURRENT = 50;
+            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+            notificationManager.notify(m, builder.build());
+
+        }
 
         private Bitmap downloadImageBitmap(String sUrl) {
             Bitmap bitmap = null;
             try {
-                InputStream inputStream = new URL(sUrl).openStream();   // Download Image from URL
-                bitmap = BitmapFactory.decodeStream(inputStream);       // Decode Bitmap
+                URL url = new URL(sUrl);
+                URLConnection urlConnection = url.openConnection();
+                urlConnection.connect();
+                int file_size = urlConnection.getContentLength();
+                Log.e("file_length", " "+file_size);
+                InputStream inputStream = new URL(sUrl).openStream();
+                bitmap = BitmapFactory.decodeStream(inputStream);       
                 inputStream.close();
             } catch (Exception e) {
                 Log.d(TAG, "Exception 1, Something went wrong!");
@@ -138,13 +185,13 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
             return bitmap;
         }
 
-        public DownloadImage(String imageName) {
+        public DownloadImage(String imageName, Context context) {
             this.imageName = imageName;
+            this.context = context;
         }
 
         @Override
         protected Bitmap doInBackground(String... params) {
-            Log.e("inbackground", "inbackground");
 
             return downloadImageBitmap(params[0]);
         }
