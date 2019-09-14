@@ -1,6 +1,10 @@
 package com.ajaymourya.picsum.adapter;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
+import android.os.Environment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +22,10 @@ import com.squareup.picasso.Callback;
 import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.List;
 
 public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomViewHolder> {
@@ -79,9 +87,6 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
                                 });
                     }
                 });
-
-
-        Log.e("imageurl", " " + dataList.get(position).getPostUrl());
     }
 
     @Override
@@ -110,9 +115,70 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
             downloadIcon.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Log.e("download"," "+ dataList.get(getAdapterPosition()).getPostUrl());
+                    new DownloadImage(dataList.get(getAdapterPosition()).getFilename()).execute(dataList.get(getAdapterPosition()).getPostUrl());
                 }
             });
+        }
+    }
+
+    private static class DownloadImage extends AsyncTask<String, Void, Bitmap> {
+        private String TAG = "DownloadImage";
+        private String imageName;
+
+        private Bitmap downloadImageBitmap(String sUrl) {
+            Bitmap bitmap = null;
+            try {
+                InputStream inputStream = new URL(sUrl).openStream();   // Download Image from URL
+                bitmap = BitmapFactory.decodeStream(inputStream);       // Decode Bitmap
+                inputStream.close();
+            } catch (Exception e) {
+                Log.d(TAG, "Exception 1, Something went wrong!");
+                e.printStackTrace();
+            }
+            return bitmap;
+        }
+
+        public DownloadImage(String imageName) {
+            this.imageName = imageName;
+        }
+
+        @Override
+        protected Bitmap doInBackground(String... params) {
+            Log.e("inbackground", "inbackground");
+
+            return downloadImageBitmap(params[0]);
+        }
+
+        protected void onPostExecute(Bitmap result) {
+            if (result != null)
+                createDirectoryAndSaveFile(result, imageName);
+        }
+    }
+
+
+    private static void createDirectoryAndSaveFile(Bitmap imageToSave, String fileName) {
+
+        File direct = new File(Environment.getExternalStorageDirectory() + "/Picsum");
+
+        if (!direct.exists()) {
+            File wallpaperDirectory = new File(Environment.getExternalStorageDirectory() + "/Picsum");
+            wallpaperDirectory.mkdirs();
+
+        }
+
+        File file = new File(new File(Environment.getExternalStorageDirectory() + "/Picsum"), fileName);
+        if (file.exists()) {
+            file.delete();
+
+        }
+        try {
+            FileOutputStream out = new FileOutputStream(file);
+            imageToSave.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            out.flush();
+            out.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
