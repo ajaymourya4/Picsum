@@ -67,6 +67,4 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
             imageView = view.findViewById(R.id.image_view);
         }
     }
-
-
 }
