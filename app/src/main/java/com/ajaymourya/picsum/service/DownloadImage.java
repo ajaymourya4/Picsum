@@ -65,7 +65,6 @@ public class DownloadImage extends AsyncTask<String, Void, String> {
         notificationManager = NotificationManagerCompat.from(context);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-
             // Giving high importance to show notification alert with popup
             mChannel = new NotificationChannel(
                     "id", "Channel_Name", NotificationManager.IMPORTANCE_HIGH);
@@ -93,16 +92,32 @@ public class DownloadImage extends AsyncTask<String, Void, String> {
                 progressText.setVisibility(View.VISIBLE);
             }
         });
-
     }
 
-    private String downloadImageFromUrl(String sUrl) {
+    @Override
+    protected String doInBackground(String... params) {
+
+        return downloadImageFromUrl(params[0]);
+    }
+
+    protected void onPostExecute(final String resultMessage) {
+
+        // Show appropriate toast message
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(context, resultMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private String downloadImageFromUrl(String imageUrl) {
 
         // for keeping the track of input stream
         int count;
         try {
             //connecting to url
-            URL url = new URL(sUrl);
+            URL url = new URL(imageUrl);
             URLConnection urlConnection = url.openConnection();
             urlConnection.connect();
 
@@ -157,14 +172,13 @@ public class DownloadImage extends AsyncTask<String, Void, String> {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(context, "Something went wrong!", Toast.LENGTH_SHORT).show();
                     downloadIcon.setVisibility(View.VISIBLE);
                     progressBar.setVisibility(View.INVISIBLE);
                     progressText.setVisibility(View.INVISIBLE);
                 }
             });
+            return "Something went wrong!";
         }
-        return "Something went wrong!";
     }
 
     private void publishProgress(final String s) {
@@ -180,19 +194,6 @@ public class DownloadImage extends AsyncTask<String, Void, String> {
                 progressText.setText(s + "%");
             }
         });
-
-
-    }
-
-    @Override
-    protected String doInBackground(String... params) {
-
-        return downloadImageFromUrl(params[0]);
-    }
-
-    protected void onPostExecute(String resultMessage) {
-
-
     }
 
     // Updates the notification based on current progress
@@ -204,33 +205,4 @@ public class DownloadImage extends AsyncTask<String, Void, String> {
             builder.setContentText("Downloaded: " + currentProgress + "%");
         notificationManager.notify(randomId, builder.build());
     }
-
-//    // Save the image in the Picsum folder with a filename
-//    // If Picsum folder is not present then it is created
-//    private void createDirectoryAndSaveFile(Bitmap imageToSave, String fileName) {
-//
-//        File direct = new File(Environment.getExternalStorageDirectory() + "/Picsum");
-//
-//        // If Picsum directory not present then create it
-//        if (!direct.exists()) {
-//            File picsumDirectory = new File(Environment.getExternalStorageDirectory() + "/Picsum");
-//            picsumDirectory.mkdirs();
-//        }
-//
-//        // If same filename is already present then delete
-//        File file = new File(new File(Environment.getExternalStorageDirectory() + "/Picsum"), fileName);
-//        if (file.exists()) {
-//            file.delete();
-//        }
-//        try {
-//            // Save the file
-//            FileOutputStream outputStream = new FileOutputStream(file);
-//            imageToSave.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
-//            outputStream.flush();
-//            outputStream.close();
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
 }
