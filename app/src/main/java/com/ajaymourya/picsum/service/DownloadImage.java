@@ -2,13 +2,13 @@ package com.ajaymourya.picsum.service;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -18,9 +18,7 @@ import android.widget.TextView;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import com.ajaymourya.picsum.ProgressBarInterface;
 import com.ajaymourya.picsum.R;
-import com.ajaymourya.picsum.activity.MainActivity;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -36,7 +34,9 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
     private String imageName;
     private Context context;
 
-    private ProgressBarInterface progressBarInterface;
+    ImageView downloadIcon;
+    ProgressBar progressBar;
+    TextView progressText;
 
     private NotificationManagerCompat notificationManager;
     private NotificationCompat.Builder builder;
@@ -68,7 +68,16 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
         int PROGRESS_CURRENT = 0;
         builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
 
-        progressBarInterface.setViews();
+
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                downloadIcon.setVisibility(View.INVISIBLE);
+                progressBar.setVisibility(View.VISIBLE);
+                progressText.setVisibility(View.VISIBLE);
+            }
+        });
+
     }
 
     private Bitmap downloadImageBitmap(String sUrl) {
@@ -104,19 +113,27 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
         return bitmap;
     }
 
-    private void publishProgress(String s) {
+    private void publishProgress(final String s) {
 
         updateNotification(Integer.parseInt(s));
 
-        progressBarInterface.setProgressBarAndText(s);
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                progressBar.setProgress(Integer.parseInt(s));
+                progressText.setText(s + "%");
+            }
+        });
+
 
     }
 
-    public DownloadImage(String imageName, Context context, ProgressBarInterface progressBarInterface) {
+    public DownloadImage(String imageName, Context context, ImageView downloadIcon, ProgressBar progressBar, TextView progressText) {
         this.imageName = imageName;
         this.context = context;
-
-        this.progressBarInterface = progressBarInterface;
+        this.downloadIcon = downloadIcon;
+        this.progressBar = progressBar;
+        this.progressText = progressText;
     }
 
     @Override
@@ -128,6 +145,7 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
     protected void onPostExecute(Bitmap result) {
         if (result != null)
             createDirectoryAndSaveFile(result, imageName);
+
     }
 
     private void updateNotification(int currentProgress) {
@@ -166,4 +184,3 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
         }
     }
 }
-
