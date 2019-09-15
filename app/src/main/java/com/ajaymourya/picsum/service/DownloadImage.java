@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -28,6 +29,9 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Date;
 
+/**
+ * Created by Ajay Mourya on 14,September,2019
+ */
 public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
 
     private String TAG = "DownloadImage";
@@ -38,21 +42,26 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
     ProgressBar progressBar;
     TextView progressText;
 
+    // Since Android Oreo we must NotificationChannel for notification as
+    // it also supports dot notification
+    private NotificationChannel mChannel;
     private NotificationManagerCompat notificationManager;
     private NotificationCompat.Builder builder;
-    private NotificationChannel mChannel;
 
-    int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
+    // NotificationChannel must use unique id for each notification
+    // Generate a random for notification id
+    private int randomId = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
 
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-
         notificationManager = NotificationManagerCompat.from(context);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+
+            // Giving high importance to show notification alert with popup
             mChannel = new NotificationChannel(
-                    "id", "Channel Name", NotificationManager.IMPORTANCE_HIGH);
+                    "id", "Channel_Name", NotificationManager.IMPORTANCE_HIGH);
             notificationManager.createNotificationChannel(mChannel);
         }
 
@@ -68,7 +77,7 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
         int PROGRESS_CURRENT = 0;
         builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
 
-
+        // After download is clicked hide download icon and show the progress bar with progress text
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -81,15 +90,21 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
     }
 
     private Bitmap downloadImageBitmap(String sUrl) {
+        // For storing image in memory
         Bitmap bitmap = null;
 
+        // for keeping the track of input stream
         int count;
         try {
+            //connecting to url
             URL url = new URL(sUrl);
             URLConnection urlConnection = url.openConnection();
             urlConnection.connect();
+
+            //lenghtOfFile is used for calculating download progress
             int lenghtOfFile = urlConnection.getContentLength();
-            Log.e("file_length", " " + lenghtOfFile);
+
+            // input stream to read file with 8k buffer
             InputStream inputStream = new BufferedInputStream(url.openStream(), 8192);
 
             byte data[] = new byte[1024];
@@ -104,19 +119,37 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
 
             }
 
+            // Covert the downloaded input stream to bitmap
             bitmap = BitmapFactory.decodeStream(inputStream);
+
+            // Close input stream
             inputStream.close();
         } catch (Exception e) {
             Log.d(TAG, "Exception 1, Something went wrong!");
+
             e.printStackTrace();
+
+            // When image is not downloaded hide the progress bar and progress text
+            // and show the download icon
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(context, "Something went wrong!", Toast.LENGTH_SHORT).show();
+                    downloadIcon.setVisibility(View.VISIBLE);
+                    progressBar.setVisibility(View.INVISIBLE);
+                    progressText.setVisibility(View.INVISIBLE);
+                }
+            });
         }
         return bitmap;
     }
 
     private void publishProgress(final String s) {
 
+        // Update the horizontal bar in notification
         updateNotification(Integer.parseInt(s));
 
+        // Update the circular bar UI in list item
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -148,36 +181,39 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
 
     }
 
+    // Updates the notification based on current progress
     private void updateNotification(int currentProgress) {
-
         builder.setProgress(100, currentProgress, false);
         if (currentProgress == 100)
             builder.setContentText("Download Complete");
         else
             builder.setContentText("Downloaded: " + currentProgress + "%");
-        notificationManager.notify(m, builder.build());
+        notificationManager.notify(randomId, builder.build());
     }
 
+    // Save the image in the Picsum folder with a filename
+    // If Picsum folder is not present then it is created
     private void createDirectoryAndSaveFile(Bitmap imageToSave, String fileName) {
 
         File direct = new File(Environment.getExternalStorageDirectory() + "/Picsum");
 
+        // If Picsum directory not present then create it
         if (!direct.exists()) {
-            File wallpaperDirectory = new File(Environment.getExternalStorageDirectory() + "/Picsum");
-            wallpaperDirectory.mkdirs();
-
+            File picsumDirectory = new File(Environment.getExternalStorageDirectory() + "/Picsum");
+            picsumDirectory.mkdirs();
         }
 
+        // If same filename is already present then delete
         File file = new File(new File(Environment.getExternalStorageDirectory() + "/Picsum"), fileName);
         if (file.exists()) {
             file.delete();
-
         }
         try {
-            FileOutputStream out = new FileOutputStream(file);
-            imageToSave.compress(Bitmap.CompressFormat.JPEG, 100, out);
-            out.flush();
-            out.close();
+            // Save the file
+            FileOutputStream outputStream = new FileOutputStream(file);
+            imageToSave.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+            outputStream.flush();
+            outputStream.close();
 
         } catch (Exception e) {
             e.printStackTrace();

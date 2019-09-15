@@ -1,15 +1,7 @@
 package com.ajaymourya.picsum.adapter;
 
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,29 +10,25 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.ajaymourya.picsum.R;
-import com.ajaymourya.picsum.model.PhotoPojo;
+import com.ajaymourya.picsum.model.ImagePojo;
 import com.ajaymourya.picsum.service.DownloadImage;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.Date;
 import java.util.List;
 
+/**
+ * Created by Ajay Mourya on 14,September,2019
+ */
 public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomViewHolder> {
 
-    private List<PhotoPojo> dataList;
     public Context context;
 
-    public CustomAdapter(Context context, List<PhotoPojo> dataList) {
+    // List of Image Objects
+    private List<ImagePojo> dataList;
+
+    public CustomAdapter(Context context, List<ImagePojo> dataList) {
         this.context = context;
         this.dataList = dataList;
     }
@@ -53,11 +41,7 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
         return new CustomViewHolder(view);
     }
 
-    @Override
-    public long getItemId(int position) {
-        return position;
-    }
-
+    // Overriding the below method to handle UI changes for the individual list item
     @Override
     public int getItemViewType(int position) {
         return position;
@@ -65,50 +49,14 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
 
     @Override
     public void onBindViewHolder(@NonNull final CustomViewHolder holder, final int position) {
+        // Set the file name and author name for each list item
         holder.fileName.setText(dataList.get(position).getFilename());
         holder.authorName.setText(dataList.get(position).getAuthor());
-
-
-//        Picasso.with(context).setLoggingEnabled(true);
-//        Picasso.Builder builder = new Picasso.Builder(context);
-//        builder.downloader(new OkHttp3Downloader(context));
-//
-//        builder.build().load(dataList.get(position).getPostUrl()).networkPolicy(NetworkPolicy.OFFLINE)
-//                .resize(215, 100)
-//                .placeholder(R.drawable.ic_launcher_background)
-//                .error(R.drawable.ic_launcher_background)
-//                .into(holder.imageView, new Callback() {
-//                    @Override
-//                    public void onSuccess() {
-//
-//                    }
-//
-//                    @Override
-//                    public void onError() {
-//                        //Try again online if cache failed
-//                        Picasso.with(context).setLoggingEnabled(true);
-//                        Picasso.Builder builder = new Picasso.Builder(context);
-//                        builder.downloader(new OkHttp3Downloader(context));
-//                        builder.build().load(dataList.get(position).getPostUrl()).resize(215, 100)
-//                                .placeholder((R.drawable.ic_launcher_background))
-//                                .error(R.drawable.ic_launcher_background)
-//                                .into(holder.imageView, new Callback() {
-//                                    @Override
-//                                    public void onSuccess() {
-//
-//                                    }
-//
-//                                    @Override
-//                                    public void onError() {
-//                                        Log.v("Picasso", "Could not fetch image");
-//                                    }
-//                                });
-//                    }
-//                });
     }
 
     @Override
     public int getItemCount() {
+        // Show only the first 20 items in the recycler view
         return 20;
     }
 
@@ -136,11 +84,12 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
             downloadIcon.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    new DownloadImage(dataList.get(getAdapterPosition()).getFilename(), context, downloadIcon, progressBar, progressText).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, dataList.get(getAdapterPosition()).getPostUrl());
-
+                    new DownloadImage(dataList.get(getAdapterPosition())
+                            .getFilename(), context, downloadIcon, progressBar, progressText)
+                            .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
+                                    dataList.get(getAdapterPosition()).getPostUrl());
                 }
             });
         }
     }
-
 }

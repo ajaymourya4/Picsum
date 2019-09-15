@@ -3,6 +3,12 @@ package com.ajaymourya.picsum.network;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+/**
+ * Created by Ajay Mourya on 14,September,2019
+ */
+
+// To issue network requests to a REST API with Retrofit, we need to create an
+// instance using the Retrofit.Builder class and configure it with a base URL.
 public class RetrofitClientInstance {
 
     private static Retrofit retrofit;

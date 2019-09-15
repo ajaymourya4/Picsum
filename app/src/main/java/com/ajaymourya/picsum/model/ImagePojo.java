@@ -2,7 +2,10 @@ package com.ajaymourya.picsum.model;
 
 import com.google.gson.annotations.SerializedName;
 
-public class PhotoPojo {
+/**
+ * Created by Ajay Mourya on 14,September,2019
+ */
+public class ImagePojo {
 
     @SerializedName("id")
     private Integer id;
@@ -15,7 +18,7 @@ public class PhotoPojo {
     @SerializedName("post_url")
     private String postUrl;
 
-    public PhotoPojo(Integer id, String filename, String author, String authorUrl, String postUrl) {
+    public ImagePojo(Integer id, String filename, String author, String authorUrl, String postUrl) {
         this.id = id;
         this.filename = filename;
         this.author = author;
