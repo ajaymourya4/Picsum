@@ -30,6 +30,7 @@ import com.squareup.picasso.Callback;
 import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -136,53 +137,74 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
         private String imageName;
         private Context context;
 
-        private NotificationCompat.Builder notificationBuilder;
-        private NotificationManager notificationManager;
+        private NotificationManagerCompat notificationManager;
+        private NotificationCompat.Builder builder;
+        private NotificationChannel mChannel;
+
+        int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
 
-            int m = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
-
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+            notificationManager = NotificationManagerCompat.from(context);
 
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                NotificationChannel mChannel = new NotificationChannel(
-                        "id","Channel Name" , NotificationManager.IMPORTANCE_HIGH);
+                mChannel = new NotificationChannel(
+                        "id", "Channel Name", NotificationManager.IMPORTANCE_HIGH);
                 notificationManager.createNotificationChannel(mChannel);
             }
 
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "id");
-            builder.setContentTitle("Picture Download")
-                    .setContentText("Download in progress")
+            builder = new NotificationCompat.Builder(context, "id");
+            builder.setContentTitle(imageName)
+                    .setContentText("Downloading Image")
                     .setSmallIcon(R.drawable.ic_launcher_background)
-                    .setPriority(NotificationCompat.PRIORITY_LOW);
+                    .setOnlyAlertOnce(true)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH);
 
             // Issue the initial notification with zero progress
             int PROGRESS_MAX = 100;
-            int PROGRESS_CURRENT = 50;
+            int PROGRESS_CURRENT = 0;
             builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-            notificationManager.notify(m, builder.build());
 
         }
 
         private Bitmap downloadImageBitmap(String sUrl) {
             Bitmap bitmap = null;
+
+            int count;
             try {
                 URL url = new URL(sUrl);
                 URLConnection urlConnection = url.openConnection();
                 urlConnection.connect();
-                int file_size = urlConnection.getContentLength();
-                Log.e("file_length", " "+file_size);
-                InputStream inputStream = new URL(sUrl).openStream();
-                bitmap = BitmapFactory.decodeStream(inputStream);       
+                int lenghtOfFile = urlConnection.getContentLength();
+                Log.e("file_length", " " + lenghtOfFile);
+                InputStream inputStream = new BufferedInputStream(url.openStream(), 8192);
+
+                byte data[] = new byte[1024];
+
+                long total = 0;
+
+                while ((count = inputStream.read(data)) != -1) {
+                    total += count;
+                    // publishing the progress....
+                    // After this onProgressUpdate will be called
+                    publishProgress("" + (int) ((total * 100) / lenghtOfFile));
+
+                }
+
+                bitmap = BitmapFactory.decodeStream(inputStream);
                 inputStream.close();
             } catch (Exception e) {
                 Log.d(TAG, "Exception 1, Something went wrong!");
                 e.printStackTrace();
             }
             return bitmap;
+        }
+
+        private void publishProgress(String s) {
+
+            updateNotification(Integer.parseInt(s));
         }
 
         public DownloadImage(String imageName, Context context) {
@@ -199,6 +221,16 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
         protected void onPostExecute(Bitmap result) {
             if (result != null)
                 createDirectoryAndSaveFile(result, imageName);
+        }
+
+        private void updateNotification(int currentProgress) {
+
+            builder.setProgress(100, currentProgress, false);
+            if (currentProgress == 100)
+                builder.setContentText("Download Complete");
+            else
+                builder.setContentText("Downloaded: " + currentProgress + "%");
+            notificationManager.notify(m, builder.build());
         }
     }
 
