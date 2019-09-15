@@ -135,7 +135,7 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
             downloadIcon.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    new DownloadImage2(dataList.get(getAdapterPosition()).getFilename(), context, downloadIcon, progressBar, progressText).execute(dataList.get(getAdapterPosition()).getPostUrl());
+                    new DownloadImage2(dataList.get(getAdapterPosition()).getFilename(), context, downloadIcon, progressBar, progressText).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, dataList.get(getAdapterPosition()).getPostUrl());
 
                 }
             });
@@ -206,7 +206,7 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
                 }
             });
 
-                }
+        }
 
         private Bitmap downloadImageBitmap(String sUrl) {
             Bitmap bitmap = null;
