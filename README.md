@@ -7,4 +7,4 @@
 - [x] Shows a notification with the progress of the current download.<br>
 - [x] Removes the download button if the file is downloaded.<br>
 - [x] Supports multiple downloads in parallel.<br>
-- [x] showing the progress on the ui for download of respective image<br>
+- [x] showing the progress on the ui for download of respective image.<br>
