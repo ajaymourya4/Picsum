@@ -3,8 +3,6 @@ package com.ajaymourya.picsum.service;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
@@ -25,6 +23,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Date;
@@ -32,15 +31,15 @@ import java.util.Date;
 /**
  * Created by Ajay Mourya on 14,September,2019
  */
-public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
-
-    private String TAG = "DownloadImage";
-    private String imageName;
-    private Context context;
+public class DownloadImage extends AsyncTask<String, Void, String> {
 
     ImageView downloadIcon;
     ProgressBar progressBar;
     TextView progressText;
+    private String TAG = "DownloadImage";
+    private String imageName;
+    private Context context;
+    private String folder;
 
     // Since Android Oreo we must NotificationChannel for notification as
     // it also supports dot notification
@@ -51,6 +50,14 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
     // NotificationChannel must use unique id for each notification
     // Generate a random for notification id
     private int randomId = (int) ((new Date().getTime() / 1000L) % Integer.MAX_VALUE);
+
+    public DownloadImage(String imageName, Context context, ImageView downloadIcon, ProgressBar progressBar, TextView progressText) {
+        this.imageName = imageName;
+        this.context = context;
+        this.downloadIcon = downloadIcon;
+        this.progressBar = progressBar;
+        this.progressText = progressText;
+    }
 
     @Override
     protected void onPreExecute() {
@@ -89,9 +96,7 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
 
     }
 
-    private Bitmap downloadImageBitmap(String sUrl) {
-        // For storing image in memory
-        Bitmap bitmap = null;
+    private String downloadImageFromUrl(String sUrl) {
 
         // for keeping the track of input stream
         int count;
@@ -107,6 +112,19 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
             // input stream to read file with 8k buffer
             InputStream inputStream = new BufferedInputStream(url.openStream(), 8192);
 
+            // External directory path to save file
+            folder = Environment.getExternalStorageDirectory() + File.separator + "Picsum/";
+
+            // Create Picsum folder if it does not exist
+            File picsumDirectory = new File(folder);
+
+            if (!picsumDirectory.exists()) {
+                picsumDirectory.mkdirs();
+            }
+
+            // Output stream to write file
+            OutputStream outputStream = new FileOutputStream(folder + imageName);
+
             byte data[] = new byte[1024];
 
             long total = 0;
@@ -117,13 +135,18 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
                 // After this onProgressUpdate will be called
                 publishProgress("" + (int) ((total * 100) / lenghtOfFile));
 
+                // writing data to file
+                outputStream.write(data, 0, count);
             }
 
-            // Covert the downloaded input stream to bitmap
-            bitmap = BitmapFactory.decodeStream(inputStream);
+            // Flushing outputStream
+            outputStream.flush();
 
             // Close input stream
             inputStream.close();
+            outputStream.close();
+
+            return "Downloaded at: " + folder + imageName;
         } catch (Exception e) {
             Log.d(TAG, "Exception 1, Something went wrong!");
 
@@ -141,7 +164,7 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
                 }
             });
         }
-        return bitmap;
+        return "Something went wrong!";
     }
 
     private void publishProgress(final String s) {
@@ -161,23 +184,14 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
 
     }
 
-    public DownloadImage(String imageName, Context context, ImageView downloadIcon, ProgressBar progressBar, TextView progressText) {
-        this.imageName = imageName;
-        this.context = context;
-        this.downloadIcon = downloadIcon;
-        this.progressBar = progressBar;
-        this.progressText = progressText;
-    }
-
     @Override
-    protected Bitmap doInBackground(String... params) {
+    protected String doInBackground(String... params) {
 
-        return downloadImageBitmap(params[0]);
+        return downloadImageFromUrl(params[0]);
     }
 
-    protected void onPostExecute(Bitmap result) {
-        if (result != null)
-            createDirectoryAndSaveFile(result, imageName);
+    protected void onPostExecute(String resultMessage) {
+
 
     }
 
@@ -191,32 +205,32 @@ public class DownloadImage extends AsyncTask<String, Void, Bitmap> {
         notificationManager.notify(randomId, builder.build());
     }
 
-    // Save the image in the Picsum folder with a filename
-    // If Picsum folder is not present then it is created
-    private void createDirectoryAndSaveFile(Bitmap imageToSave, String fileName) {
-
-        File direct = new File(Environment.getExternalStorageDirectory() + "/Picsum");
-
-        // If Picsum directory not present then create it
-        if (!direct.exists()) {
-            File picsumDirectory = new File(Environment.getExternalStorageDirectory() + "/Picsum");
-            picsumDirectory.mkdirs();
-        }
-
-        // If same filename is already present then delete
-        File file = new File(new File(Environment.getExternalStorageDirectory() + "/Picsum"), fileName);
-        if (file.exists()) {
-            file.delete();
-        }
-        try {
-            // Save the file
-            FileOutputStream outputStream = new FileOutputStream(file);
-            imageToSave.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
-            outputStream.flush();
-            outputStream.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+//    // Save the image in the Picsum folder with a filename
+//    // If Picsum folder is not present then it is created
+//    private void createDirectoryAndSaveFile(Bitmap imageToSave, String fileName) {
+//
+//        File direct = new File(Environment.getExternalStorageDirectory() + "/Picsum");
+//
+//        // If Picsum directory not present then create it
+//        if (!direct.exists()) {
+//            File picsumDirectory = new File(Environment.getExternalStorageDirectory() + "/Picsum");
+//            picsumDirectory.mkdirs();
+//        }
+//
+//        // If same filename is already present then delete
+//        File file = new File(new File(Environment.getExternalStorageDirectory() + "/Picsum"), fileName);
+//        if (file.exists()) {
+//            file.delete();
+//        }
+//        try {
+//            // Save the file
+//            FileOutputStream outputStream = new FileOutputStream(file);
+//            imageToSave.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+//            outputStream.flush();
+//            outputStream.close();
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 }
